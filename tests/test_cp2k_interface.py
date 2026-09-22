@@ -125,6 +125,25 @@ def test_add_result_SC(tmp):
     assert abs(res.get_potential_energy() - omega/2) < 1e-6 and res.info['sc_U'] == 1.01
 
 
+def test_prepare_collect(tmp):
+    os.chdir(tmp)
+    write('POSCAR', slab(), format='vasp')
+    open('tpl.inp', 'w').write('@SET PROJ x\n@SET CHG 0\n&GLOBAL\n PROJECT ${PROJ}\n&END GLOBAL\n')
+    dirs = cp2k.prepare_surfChrg([-1, 0, 1], template='tpl.inp')
+    assert dirs == ['q_-1', 'q_+0', 'q_+1'] and '@SET CHG -1' in open('q_-1/sc.inp').read()
+    assert os.path.isfile('q_+1/coord.inc')
+    for q, ef, e in ((-1, -0.17, -100.2), (0, -0.19, -100.0), (1, -0.21, -100.3)):
+        open(f'{cp2k._sc_dirname(q, False)}/sc.out', 'w').write(
+            f' Fermi energy:   {ef}\n ENERGY| Total FORCE_EVAL ( QS ) energy [hartree]   {e}\n PROGRAM ENDED AT x\n')
+    rows = cp2k.collect_surfChrg([-1, 0, 1], phi_she=4.43)
+    assert len(rows) == 3 and abs(rows[0][0] - 1) < 1e-12          # dN = -q
+    assert abs(rows[1][1] - (0.19 * HA - 4.43)) < 1e-9              # U = -E_F - phi_SHE
+    assert abs(rows[0][2] - ((-100.2 * HA) - (-0.17 * HA) * 1.0)) < 1e-6
+    assert len(open('sc.dat').read().splitlines()) == 3
+    fr = cp2k.prepare_surfChrg([-0.5], template='tpl.inp', fractional=True)
+    assert fr == ['q_-0.50'] and '@SET NEX 0.5' in open('q_-0.50/sc.inp').read()
+
+
 if __name__ == '__main__':
     tests = [v for k, v in sorted(globals().items()) if k.startswith('test_')]
     for t in tests:

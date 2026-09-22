@@ -307,39 +307,60 @@ def gce_result(out, atoms, nsides=1):
 
 
 # ------------------------------------- constant potential, route C (charge scan)
-def do_surfChrg_batch(list_charge, cp2k_cmd, template='../cp2k-sc.inp', poscar='POSCAR',
-                      phi_she=4.43, sets=None, fractional=False):
-    """Fixed-charge scan, one sub-directory per charge; writes sc.dat (dN, U_SHE, Omega_el).
-    dN = excess electrons = -q (same sign convention as gocia.utils.vasp sc.dat).
-    fractional=True uses NELECTRON_EXCESS (ai-cp2k-lpb build) instead of the integer CHARGE."""
+def _sc_dirname(q, fractional):
+    return f'q_{q:+.2f}' if fractional else f'q_{int(q):+d}'
+
+
+def prepare_surfChrg(list_charge, template='../cp2k-sc.inp', poscar='POSCAR', sets=None, fractional=False):
+    """Write one sub-directory per charge with sc.inp + includes; nothing is run.
+    fractional=True sets NEX (NELECTRON_EXCESS, ai-cp2k-lpb build) instead of the integer CHARGE."""
     atoms = read(poscar)
-    home = os.getcwd()
-    rows = []
+    dirs = []
     for q in list_charge:
-        d = f'q_{q:+.2f}' if fractional else f'q_{int(q):+d}'
+        d = _sc_dirname(q, fractional)
         os.makedirs(d, exist_ok=True)
-        os.chdir(d)
-        write_includes(atoms)
+        write_includes(atoms, d)
         s = dict(sets or {})
         if fractional:
             s['NEX'] = -q
-            make_input(template, 'sc.inp', 'sc', charge=0, sets=s)
+            make_input(template, os.path.join(d, 'sc.inp'), 'sc', charge=0, sets=s)
         else:
-            make_input(template, 'sc.inp', 'sc', charge=int(q), sets=s)
-        run_cp2k(cp2k_cmd, 'sc.inp', 'sc.out')
-        r = parse_output('sc.out')
-        os.chdir(home)
-        if r is None or r['fermi_eV'] is None:
-            print(f'{d}: no energy/Fermi level, skipped')
+            make_input(template, os.path.join(d, 'sc.inp'), 'sc', charge=int(q), sets=s)
+        dirs.append(d)
+    return dirs
+
+
+def collect_surfChrg(list_charge, phi_she=4.43, fractional=False, out='sc.out'):
+    """Parse the charge sub-directories -> sc.dat rows (dN, U_SHE, Omega_el).
+    dN = excess electrons = -q (same sign convention as gocia.utils.vasp sc.dat).
+    Omega_el = E - E_F*dN with W_f = -E_F (bulk electrolyte potential = 0)."""
+    rows = []
+    for q in list_charge:
+        d = _sc_dirname(q, fractional)
+        r = parse_output(os.path.join(d, out))
+        if r is None or r['fermi_eV'] is None or not r['ended']:
+            print(f'{d}: no energy/Fermi level or not ended, skipped')
             continue
         dN = -q
-        wf = -r['fermi_eV']              # phi_bulk = 0 with the implicit electrolyte
+        wf = -r['fermi_eV']
         u = wf - phi_she
-        omega = grand_potential_el(r['energy_eV'], r['fermi_eV'], dN)
-        rows.append((dN, u, omega))
-        with open('sc.dat', 'a') as f:
-            f.write(f'{dN}\t{u}\t{omega}\n')
+        rows.append((dN, u, grand_potential_el(r['energy_eV'], r['fermi_eV'], dN)))
+    with open('sc.dat', 'w') as f:
+        for dN, u, om in rows:
+            f.write(f'{dN}\t{u}\t{om}\n')
     return rows
+
+
+def do_surfChrg_batch(list_charge, cp2k_cmd, template='../cp2k-sc.inp', poscar='POSCAR',
+                      phi_she=4.43, sets=None, fractional=False):
+    """Serial prepare -> run -> collect. For packed parallel runs call prepare_surfChrg,
+    launch cp2k in each q_* directory yourself, then collect_surfChrg."""
+    home = os.getcwd()
+    for d in prepare_surfChrg(list_charge, template, poscar, sets, fractional):
+        os.chdir(d)
+        run_cp2k(cp2k_cmd, 'sc.inp', 'sc.out')
+        os.chdir(home)
+    return collect_surfChrg(list_charge, phi_she, fractional)
 
 
 def get_parabola(dir_sc='.'):
