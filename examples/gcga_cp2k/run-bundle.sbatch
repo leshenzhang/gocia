@@ -12,12 +12,13 @@
 #SBATCH --output=%x-%j.out
 module switch PrgEnv-cray PrgEnv-gnu
 module load cray-fftw/3.3.10.10
+module load cray-python
 R=/scratch/wangc0i/zls/soft/cp2k-2026.2
 export CP2K_DATA_DIR=$R/src/cp2k-2026.2/data
 export OMP_NUM_THREADS=2
-# python with ase+numpy+natsort visible from the compute nodes (/scratch, not /home: Cray DVS)
-export PYTHONPATH=/scratch/wangc0i/zls/soft/gocia-cp2k:$PYTHONPATH
-PY=/scratch/reny0b/iops/sw/envs/gs/bin/python
+# python with ase+natsort visible from the compute nodes: cray-python + pip --target /scratch pylib (/home is not mounted there)
+export PYTHONPATH=/scratch/wangc0i/zls/soft/gocia-cp2k:/scratch/wangc0i/zls/soft/pylib:$PYTHONPATH
+PY=python
 NW=$(( 4 * SLURM_JOB_NUM_NODES ))
 cd "$SLURM_SUBMIT_DIR" || exit 1
 $PY -u ga-bundle.py $NW 400 100

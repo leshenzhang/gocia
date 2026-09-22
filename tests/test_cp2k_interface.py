@@ -45,6 +45,13 @@ def test_includes_and_input(tmp):
     cons = open(os.path.join(tmp, 'constraint.inc')).read()
     assert '&FIXED_ATOMS' in cons and 'LIST 1..8' in cons, cons
     assert len(open(os.path.join(tmp, 'coord.inc')).read().splitlines()) == 12
+    kind = open(os.path.join(tmp, 'kind.inc')).read()
+    assert '&KIND Pt' in kind and 'DZVP-MOLOPT-SR-GTH-q18' in kind and 'GTH-PBE-q18' in kind
+    assert cp2k.valence_electrons(a) == 12 * 18 and cp2k.multiplicity(a) == 1 and cp2k.multiplicity(a, 1) == 2
+    from ase import Atoms
+    ref = Atoms('Mo24S46O92H185')                       # the group's reference input: UKS MULTIPLICITY 2
+    assert cp2k.valence_electrons(ref) == 1349 and cp2k.multiplicity(ref) == 2
+    assert cp2k.kind_block(['Mo', 'S']).count('&KIND') == 2
     tpl = os.path.join(tmp, 'tpl.inp')
     open(tpl, 'w').write('@SET PROJ x\n@SET CHG 0\n&GLOBAL\n PROJECT ${PROJ}\n&END GLOBAL\n')
     out = os.path.join(tmp, 'run.inp')
@@ -131,6 +138,7 @@ def test_prepare_collect(tmp):
     open('tpl.inp', 'w').write('@SET PROJ x\n@SET CHG 0\n&GLOBAL\n PROJECT ${PROJ}\n&END GLOBAL\n')
     dirs = cp2k.prepare_surfChrg([-1, 0, 1], template='tpl.inp')
     assert dirs == ['q_-1', 'q_+0', 'q_+1'] and '@SET CHG -1' in open('q_-1/sc.inp').read()
+    assert '@SET MULT 1' in open('q_+0/sc.inp').read() and '@SET MULT 2' in open('q_+1/sc.inp').read()
     assert os.path.isfile('q_+1/coord.inc')
     for q, ef, e in ((-1, -0.17, -100.2), (0, -0.19, -100.0), (1, -0.21, -100.3)):
         open(f'{cp2k._sc_dirname(q, False)}/sc.out', 'w').write(

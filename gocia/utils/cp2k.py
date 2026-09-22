@@ -19,6 +19,8 @@ Template convention (see examples/gcga_cp2k/cp2k-*.inp):
   @INCLUDE cell.inc     inside &SUBSYS&CELL
   @INCLUDE coord.inc    inside &SUBSYS&COORD
   @INCLUDE constraint.inc inside &MOTION&CONSTRAINT   (FixAtoms -> &FIXED_ATOMS)
+  @INCLUDE kind.inc     inside &SUBSYS               (&KIND per element, MOLOPT-SR-qN / GTH-PBE-qN)
+  @SET MULT / @SET NVAL  written per structure (UKS parity from the valence count and CHARGE)
 Any other '@SET KEY value' line can be overridden through make_input(sets={...}).
 """
 import os
@@ -58,8 +60,49 @@ def _ranges_1based(idx):
     return ' '.join(out)
 
 
-def write_includes(atoms, dirname='.'):
-    """Write cell.inc / coord.inc / constraint.inc for the template @INCLUDEs."""
+# valence electrons of the standard MOLOPT-SR / GTH-PBE-qN sets (q = valence count)
+KIND_Q = {'H': 1, 'Li': 3, 'B': 3, 'C': 4, 'N': 5, 'O': 6, 'F': 7, 'Na': 9, 'Mg': 10, 'Al': 3,
+          'Si': 4, 'P': 5, 'S': 6, 'Cl': 7, 'K': 9, 'Ca': 10, 'Ti': 12, 'V': 13, 'Cr': 14,
+          'Mn': 15, 'Fe': 16, 'Co': 17, 'Ni': 18, 'Cu': 11, 'Zn': 12, 'Se': 6, 'Br': 7,
+          'Mo': 14, 'Ru': 16, 'Rh': 17, 'Pd': 18, 'Ag': 11, 'W': 14, 'Re': 15, 'Ir': 17,
+          'Pt': 18, 'Au': 11}
+BASIS_DEFAULT = 'DZVP-MOLOPT-SR-GTH'
+POTENTIAL_DEFAULT = 'GTH-PBE'
+
+
+def kind_block(symbols, basis=BASIS_DEFAULT, potential=POTENTIAL_DEFAULT, overrides=None):
+    """&KIND blocks for the elements present (reference style: ELEMENT / BASIS_SET-qN / POTENTIAL-qN).
+    overrides = {'Pt': {'BASIS_SET': ..., 'POTENTIAL': ...}} replaces the generated lines."""
+    overrides = overrides or {}
+    out = []
+    for el in sorted(set(symbols), key=lambda e: list(symbols).index(e)):
+        if el in overrides:
+            kw = overrides[el]
+        elif el in KIND_Q:
+            kw = {'BASIS_SET': f'{basis}-q{KIND_Q[el]}', 'POTENTIAL': f'{potential}-q{KIND_Q[el]}'}
+        else:
+            raise KeyError(f'no default MOLOPT/GTH q for element {el}; pass overrides')
+        out.append(f'    &KIND {el}\n      ELEMENT {el}\n' + ''.join(f'      {k} {v}\n' for k, v in kw.items()) + '    &END KIND\n')
+    return ''.join(out)
+
+
+def valence_electrons(atoms, overrides_q=None):
+    q = dict(KIND_Q, **(overrides_q or {}))
+    return sum(q[s] for s in atoms.get_chemical_symbols())
+
+
+def multiplicity(atoms, charge=0, overrides_q=None):
+    """1 for an even electron count, 2 for odd (UKS parity; GCGA adds/removes atoms so it flips)."""
+    ne = valence_electrons(atoms, overrides_q) - int(round(charge))
+    return 1 if ne % 2 == 0 else 2
+
+
+def default_sets(atoms, charge=0):
+    return {'MULT': multiplicity(atoms, charge), 'NVAL': valence_electrons(atoms)}
+
+
+def write_includes(atoms, dirname='.', kind_overrides=None):
+    """Write cell.inc / coord.inc / constraint.inc / kind.inc for the template @INCLUDEs."""
     cell = np.array(atoms.get_cell())
     with open(os.path.join(dirname, 'cell.inc'), 'w') as f:
         for lab, v in zip('ABC', cell):
@@ -71,6 +114,8 @@ def write_includes(atoms, dirname='.'):
     with open(os.path.join(dirname, 'constraint.inc'), 'w') as f:
         if fixed:
             f.write(f'  &FIXED_ATOMS\n    LIST {_ranges_1based(fixed)}\n  &END FIXED_ATOMS\n')
+    with open(os.path.join(dirname, 'kind.inc'), 'w') as f:
+        f.write(kind_block(atoms.get_chemical_symbols(), overrides=kind_overrides))
 
 
 def make_input(template, out, project, charge=None, sets=None):
@@ -182,7 +227,8 @@ def do_multiStep_opt(step=3, cp2k_cmd='', poscar='POSCAR', template='../cp2k-%i.
         atoms = read(poscar)
         write_includes(atoms)
         proj = f'stage{counter}'
-        make_input(template % counter, f'{proj}.inp', proj, charge=charge, sets=sets)
+        make_input(template % counter, f'{proj}.inp', proj, charge=charge,
+                   sets=dict(default_sets(atoms, charge), **(sets or {})))
         run_cp2k(cp2k_cmd, f'{proj}.inp', f'{proj}.out')
         if not is_success(f'{proj}.out', require_geo=require_geo):
             os.system('touch FAIL')
@@ -320,7 +366,7 @@ def prepare_surfChrg(list_charge, template='../cp2k-sc.inp', poscar='POSCAR', se
         d = _sc_dirname(q, fractional)
         os.makedirs(d, exist_ok=True)
         write_includes(atoms, d)
-        s = dict(sets or {})
+        s = dict(default_sets(atoms, 0 if fractional else q), **(sets or {}))
         if fractional:
             s['NEX'] = -q
             make_input(template, os.path.join(d, 'sc.inp'), 'sc', charge=0, sets=s)

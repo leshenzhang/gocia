@@ -3,13 +3,14 @@
 @SET NEX 0.0
 @SET LPB 3.04
 @SET NC 0.0025
-# Route C: single point at fixed charge with the implicit electrolyte, one run per charge.
-# CHG = integer &DFT CHARGE. For fractional excess electrons set NEX and uncomment NELECTRON_EXCESS
-# (&GCE with MAX_OUTER_UPDATES 0 = constant-charge run, ai-cp2k-lpb build).
-# Parse: gocia.utils.cp2k.do_surfChrg_batch -> sc.dat -> get_parabola -> parabola.dat
+@SET ADDMOS 80
+# Route C: single point at fixed charge with the implicit electrolyte, one run per charge (5-point parabola).
+# CHG = integer &DFT CHARGE. Fractional excess electrons: set NEX and uncomment the &GCE block
+# (NELECTRON_EXCESS with MAX_OUTER_UPDATES 0 = constant-charge run).
+# Parse: gocia.utils.cp2k.collect_surfChrg -> sc.dat -> get_parabola -> parabola.dat
 &GLOBAL
-  PRINT_LEVEL low
   PROJECT ${PROJ}
+  PRINT_LEVEL LOW
   RUN_TYPE ENERGY
   EXTENDED_FFT_LENGTHS
 &END GLOBAL
@@ -17,28 +18,40 @@
   METHOD Quickstep
   &DFT
     BASIS_SET_FILE_NAME BASIS_MOLOPT
-    POTENTIAL_FILE_NAME GTH_POTENTIALS
+    POTENTIAL_FILE_NAME POTENTIAL
     CHARGE ${CHG}
-    &MGRID
-      CUTOFF 600
-      REL_CUTOFF 60
-      NGRIDS 5
-    &END MGRID
-    &POISSON
-      PERIODIC XYZ
-      POISSON_SOLVER PERIODIC
-    &END POISSON
     &QS
       EPS_DEFAULT 1.0E-10
       EXTRAPOLATION ASPC
+      EXTRAPOLATION_ORDER 3
     &END QS
+    &POISSON
+      PERIODIC XYZ
+      PSOLVER PERIODIC
+    &END POISSON
+    &XC
+      &XC_FUNCTIONAL PBE
+      &END XC_FUNCTIONAL
+      &VDW_POTENTIAL
+        POTENTIAL_TYPE PAIR_POTENTIAL
+        &PAIR_POTENTIAL
+          PARAMETER_FILE_NAME dftd3.dat
+          TYPE DFTD3(BJ)
+          REFERENCE_FUNCTIONAL PBE
+        &END PAIR_POTENTIAL
+      &END VDW_POTENTIAL
+    &END XC
+    &MGRID
+      CUTOFF 500
+      REL_CUTOFF 50
+    &END MGRID
     &SCCS on
       ALPHA [N*m^-1] 0.0
       BETA [kbar] 0.0
       GAMMA [mN/m] 0.0
       DELTA_RHO 2.0E-5
       DERIVATIVE_METHOD fft
-      DIELECTRIC_CONSTANT 78.36
+      DIELECTRIC_CONSTANT 78.4
       EPS_SCCS 1.0E-6
       EPS_SCF 0.5
       MAX_ITER 200
@@ -54,10 +67,10 @@
       &END ISODENSITY
     &END SCCS
     &SCF
-      EPS_SCF 1.0E-6
       MAX_SCF 400
+      EPS_SCF 1.0E-6
       SCF_GUESS atomic
-      ADDED_MOS 80
+      ADDED_MOS ${ADDMOS}
       &DIAGONALIZATION on
         ALGORITHM STANDARD
       &END DIAGONALIZATION
@@ -75,14 +88,10 @@
 #        MAX_OUTER_UPDATES 0
 #      &END GCE
       &PRINT
-        &RESTART off
+        &RESTART OFF
         &END RESTART
       &END PRINT
     &END SCF
-    &XC
-      &XC_FUNCTIONAL PBE
-      &END XC_FUNCTIONAL
-    &END XC
   &END DFT
   &SUBSYS
     &CELL
@@ -92,25 +101,6 @@
     &COORD
       @INCLUDE coord.inc
     &END COORD
-    &KIND Pt
-      BASIS_SET DZVP-MOLOPT-SR-GTH-q18
-      POTENTIAL GTH-PBE-q18
-    &END KIND
-    &KIND Cu
-      BASIS_SET DZVP-MOLOPT-SR-GTH-q11
-      POTENTIAL GTH-PBE-q11
-    &END KIND
-    &KIND H
-      BASIS_SET DZVP-MOLOPT-SR-GTH-q1
-      POTENTIAL GTH-PBE-q1
-    &END KIND
-    &KIND C
-      BASIS_SET DZVP-MOLOPT-SR-GTH-q4
-      POTENTIAL GTH-PBE-q4
-    &END KIND
-    &KIND O
-      BASIS_SET DZVP-MOLOPT-SR-GTH-q6
-      POTENTIAL GTH-PBE-q6
-    &END KIND
+    @INCLUDE kind.inc
   &END SUBSYS
 &END FORCE_EVAL

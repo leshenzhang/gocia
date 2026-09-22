@@ -24,7 +24,7 @@ while kid is None:
     kid = pop.gen_offspring_box(
         mutRate=0.4,
         xyzLims=np.array(input.xyzLims),
-        bondRejList=[['H', 'H']],
+        bondRejList=getattr(input, 'bondRejList', None),
         constrainTop=True,
         transVec=[[-3, 3], [-3, 3]],
     )
@@ -46,7 +46,8 @@ elif input.route == 'B':
     if atoms is None:
         sys.exit('CP2K failed (FAIL touched)')
     cp2k.write_includes(atoms)
-    cp2k.make_input('../cp2k-gce.inp', 'gce.inp', 'gce', sets={'USHE': input.u_she, 'PHISHE': input.phi_she})
+    cp2k.make_input('../cp2k-gce.inp', 'gce.inp', 'gce',
+                    sets=dict(cp2k.default_sets(atoms, 0), USHE=input.u_she, PHISHE=input.phi_she))
     cp2k.run_cp2k(input.cp2k_cmd, 'gce.inp', 'gce.out')
     final = cp2k.read_final_geometry('gce', atoms)
     res, info = cp2k.gce_result('gce.out', final, nsides=input.nsides)
