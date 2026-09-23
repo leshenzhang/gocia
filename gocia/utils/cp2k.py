@@ -107,8 +107,7 @@ def default_sets(atoms, charge=0):
     """@SET values written per structure: MULT (UKS parity), NVAL, ADDMOS ('n' or 'n n' for UKS as Multiwfn writes it)."""
     m = multiplicity(atoms, charge)
     n = added_mos(atoms)
-    return {'MULT': m, 'NVAL': valence_electrons(atoms), 'ADDMOS': f'{n} {n}' if m == 2 else f'{n}',
-            'SCFMODE': 'DIAG'}   # DIAG (metals, default) | OT (gapped systems); override via sets={'SCFMODE': 'OT'}
+    return {'MULT': m, 'NVAL': valence_electrons(atoms), 'ADDMOS': f'{n} {n}' if m == 2 else f'{n}'}
 
 
 def write_includes(atoms, dirname='.', kind_overrides=None):
@@ -192,9 +191,12 @@ def grand_potential_el(energy_eV, fermi_eV, n_excess):
 
 
 def read_final_geometry(project, ref_atoms, dirname='.'):
-    """Last frame of <project>-pos-1.xyz with the cell/pbc/constraints of ref_atoms.
-    Falls back to ref_atoms (single point runs write no trajectory)."""
-    fn = os.path.join(dirname, f'{project}-pos-1.xyz')
+    """Final geometry with the cell/pbc/constraints of ref_atoms. Prefers <project>-FINAL*.xyz
+    (&MOTION&PRINT&FINAL_STRUCTURE, CP2K >= 2026.2, written converged or not; the lean templates turn
+    the per-step trajectory off), else the last frame of <project>-pos-1.xyz, else ref_atoms."""
+    import glob
+    finals = sorted(glob.glob(os.path.join(dirname, f'{project}-FINAL*.xyz')), key=os.path.getmtime)
+    fn = finals[-1] if finals else os.path.join(dirname, f'{project}-pos-1.xyz')
     new = ref_atoms.copy()
     if os.path.isfile(fn):
         fr = read(fn, index=-1)
@@ -327,7 +329,7 @@ def do_multiStep_opt(step=3, cp2k_cmd='', poscar='POSCAR', template='../cp2k-%i.
             continue
 
     if clean:
-        os.system('rm -f *.wfn *.wfn.bak-* *.cube *-RESTART.kp')
+        os.system('rm -f *.wfn *.wfn.bak-* *-BFGS.Hessian *.cube')
     return result_atoms(read(poscar), energy)
 
 

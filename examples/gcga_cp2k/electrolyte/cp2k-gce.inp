@@ -1,37 +1,40 @@
+# Route B: GEO_OPT at constant potential USHE (V vs SHE); needs the cp2k-implicit-electrolyte build.
+# Omega_el = E - E_F*N_e from the last "GCE| trace" line. Slab must be z-symmetrised.
 @SET PROJ gce
 @SET CHG 0
+@SET MULT 1
+@SET ADDMOS 81
 @SET USHE 0.0
 @SET PHISHE 4.43
 @SET LPB 3.04
 @SET NC 0.0025
-@SET ADDMOS 81
-@SET MULT 1
-# Route B: GEO_OPT at constant electrode potential USHE (V vs SHE) with the implicit electrolyte
-# (leshenzhang/cp2k-implicit-electrolyte build: &SCCS DEBYE_LENGTH + &SCF&GCE UPDATE_SCHEME CAPACITANCE).
-# &GCE needs diagonalization + Fermi-Dirac smearing + ADDED_MOS (no OT). Slab must be z-symmetrised.
-# Parse: gocia.utils.cp2k.gce_result -> Omega_el(U) = E - E_F*N_e from the last 'GCE| trace' line.
 &GLOBAL
   PROJECT ${PROJ}
-  PRINT_LEVEL LOW
   RUN_TYPE GEO_OPT
-  EXTENDED_FFT_LENGTHS
+  PRINT_LEVEL LOW
 &END GLOBAL
 &MOTION
   &GEO_OPT
-    OPTIMIZER LBFGS
-    MAX_ITER 200
-    MAX_FORCE 4.5E-4
-    RMS_FORCE 3.0E-4
-    MAX_DR 3.0E-3
-    RMS_DR 1.5E-3
+    OPTIMIZER BFGS
+    MAX_ITER 300
+    MAX_FORCE 1.945E-03
+    RMS_FORCE 1.945E-03
+    MAX_DR 1
+    RMS_DR 1
+    &BFGS
+      &RESTART OFF
+      &END RESTART
+    &END BFGS
   &END GEO_OPT
   &CONSTRAINT
     @INCLUDE constraint.inc
   &END CONSTRAINT
   &PRINT
-    &TRAJECTORY
-      FORMAT XYZ
+    &TRAJECTORY OFF
     &END TRAJECTORY
+    &FINAL_STRUCTURE
+      PRINT_CIF F
+    &END FINAL_STRUCTURE
     &RESTART OFF
     &END RESTART
     &RESTART_HISTORY OFF
@@ -39,7 +42,6 @@
   &END PRINT
 &END MOTION
 &FORCE_EVAL
-  METHOD Quickstep
   &DFT
     BASIS_SET_FILE_NAME BASIS_MOLOPT
     POTENTIAL_FILE_NAME POTENTIAL
@@ -49,76 +51,48 @@
     MULTIPLICITY 2
 @ENDIF
     &QS
-      EPS_DEFAULT 1.0E-10
-      EXTRAPOLATION ASPC
-      EXTRAPOLATION_ORDER 3
+      EPS_DEFAULT 1.0E-11
     &END QS
-    &POISSON
-      PERIODIC XYZ
-      PSOLVER PERIODIC
-    &END POISSON
+    &MGRID
+      CUTOFF 350
+      REL_CUTOFF 50
+    &END MGRID
     &XC
       &XC_FUNCTIONAL PBE
       &END XC_FUNCTIONAL
-      &VDW_POTENTIAL
-        POTENTIAL_TYPE PAIR_POTENTIAL
-        &PAIR_POTENTIAL
-          PARAMETER_FILE_NAME dftd3.dat
-          TYPE DFTD3(BJ)
-          REFERENCE_FUNCTIONAL PBE
-        &END PAIR_POTENTIAL
-      &END VDW_POTENTIAL
     &END XC
-    &MGRID
-      CUTOFF 500
-      REL_CUTOFF 50
-    &END MGRID
-    &SCCS on
+    &SCCS
       ALPHA [N*m^-1] 0.0
       BETA [kbar] 0.0
       GAMMA [mN/m] 0.0
-      DELTA_RHO 2.0E-5
-      DERIVATIVE_METHOD fft
       DIELECTRIC_CONSTANT 78.4
-      EPS_SCCS 1.0E-6
-      EPS_SCF 0.5
-      MAX_ITER 200
       METHOD ISODENSITY
-      MIXING 0.6
       SOLVER NEWTON_CG
-      EPS_NLPB 1.0E-9
-      MAX_ITER_NLPB 50
       DEBYE_LENGTH [angstrom] ${LPB}
       &ISODENSITY
         RHO_CAVITY [angstrom^-3] ${NC}
-        SWITCH_WIDTH 0.6
       &END ISODENSITY
     &END SCCS
     &SCF
       MAX_SCF 600
-      EPS_SCF 1.0E-6
-      SCF_GUESS atomic
+      EPS_SCF 5.0E-6
       ADDED_MOS ${ADDMOS}
-      &DIAGONALIZATION on
-        ALGORITHM STANDARD
+      &DIAGONALIZATION
       &END DIAGONALIZATION
-      &SMEAR on
-        METHOD FERMI_DIRAC
-        ELECTRONIC_TEMPERATURE [K] 300
-      &END SMEAR
       &MIXING
         METHOD BROYDEN_MIXING
         ALPHA 0.4
         NBROYDEN 8
       &END MIXING
-      &GCE on
+      &SMEAR
+        METHOD FERMI_DIRAC
+        ELECTRONIC_TEMPERATURE 300
+      &END SMEAR
+      &GCE
         UPDATE_SCHEME CAPACITANCE
         UPDATE_EVERY SCF_CYCLE
         TARGET_POTENTIAL [eV] ${USHE}
         PHI_SHE [eV] ${PHISHE}
-        FERMI_TOL [eV] 0.01
-        MAX_OUTER_UPDATES 20
-        UPDATE_INTERVAL 1
       &END GCE
       &PRINT
         &RESTART OFF
@@ -129,7 +103,6 @@
   &SUBSYS
     &CELL
       @INCLUDE cell.inc
-      PERIODIC XYZ
     &END CELL
     &COORD
       @INCLUDE coord.inc

@@ -34,7 +34,7 @@ kid.write('POSCAR')
 # --- local optimisation with CP2K ---
 if input.route == 'A':
     atoms = cp2k.do_multiStep_opt(step=3, cp2k_cmd=input.cp2k_cmd, template='../cp2k-%i.inp',
-                                  zLim=input.zLim, substrate='../substrate.vasp', sets={'SCFMODE': input.scf_mode})
+                                  zLim=input.zLim, substrate='../substrate.vasp')
     if atoms is None:
         sys.exit('CP2K failed (FAIL touched)')
     pop.add_aseResult(atoms, workdir='.')
@@ -42,7 +42,7 @@ if input.route == 'A':
 elif input.route == 'B':
     # stages 1-2 neutral (cheap), final stage at constant potential
     atoms = cp2k.do_multiStep_opt(step=2, cp2k_cmd=input.cp2k_cmd, template='../cp2k-%i.inp',
-                                  zLim=input.zLim, substrate='../substrate.vasp', clean=False, sets={'SCFMODE': input.scf_mode})
+                                  zLim=input.zLim, substrate='../substrate.vasp', clean=False)
     if atoms is None:
         sys.exit('CP2K failed (FAIL touched)')
     cp2k.write_includes(atoms)

@@ -22,10 +22,6 @@ zLim = [12.0, 16.0]
 # sampling box for growMut_box / boxSample_adatom: [[xmin,xmax],[ymin,ymax],[zmin,zmax]]
 xyzLims = [[0.0, 11.1], [0.0, 9.6], [12.0, 16.0]]
 
-# SCF block for cp2k-1/2/3.inp: 'DIAG' = diagonalization + Fermi-Dirac smearing (metals; default),
-# 'OT' = orbital transformation (gapped systems such as MoS2/water). Metals must NOT use OT (Ibex test 2026-09-22).
-scf_mode = 'DIAG'
-
 # route: 'A' canonical/CHE (cp2k-1..3.inp, stock CP2K), 'B' constant potential (electrolyte/cp2k-gce.inp,
 #        needs https://github.com/leshenzhang/cp2k-implicit-electrolyte)
 route = 'A'

@@ -17,7 +17,7 @@ build https://github.com/leshenzhang/cp2k-implicit-electrolyte — the model is 
 | `ga-worker.py` | offspring -> Hookean preopt -> CP2K (route A or B) -> db | ga-worker.py |
 | `ga-bundle.py` + `run-bundle.sbatch` | ONE sbatch job, N nodes, 4 workers/node, `touch STOP` to end | ga-slurm.py + slurm-vasp.sh |
 | `electrolyte/sc-worker.py` | route C charge scan: `--prepare` / packed run / `--collect` -> `sc.dat`, `parabola.dat` (separate electrolyte build) | do_surfChrg_batch + get_parabola |
-| `cp2k-1/2/3.inp` | 3-stage GEO_OPT, group reference style (PBE-D3(BJ), MOLOPT-SR, OT + OUTER_SCF, UKS) | INCAR-1/2/3 |
+| `cp2k-1/2/3.inp` | 3-stage GEO_OPT, lean: diagonalisation + Fermi-Dirac 300 K (Multiwfn), BFGS, force criteria 0.5/0.2/0.1 eV/A (= EDIFFG), stage 3 restarts from the stage-2 wavefunction; only the final structure (FINAL xyz) is written | INCAR-1/2/3 |
 | `electrolyte/cp2k-gce.inp` | route B: GEO_OPT at constant potential (`&SCCS DEBYE_LENGTH` + `&SCF&GCE`), separate electrolyte build | — |
 | `electrolyte/cp2k-sc.inp` | route C: fixed-charge single point with electrolyte (5-point parabola), separate electrolyte build | INCAR-sc |
 
