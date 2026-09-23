@@ -1,6 +1,6 @@
 # Stage 1/3 (cheap): force < 0.5 eV/A, max 25 steps, 250/40 Ry, EPS_SCF 1e-3, LBFGS; writes stage1-RESTART.wfn
-# for stage 2. Ibex tests (ai-reconstr-pre D-009/D-015): stage-1 BFGS (fixed 0.25 A trust radius) accepted uphill
-# steps and swung by ~10 eV; LBFGS converged in 17-24 evaluations and cut the 3-stage cost to 0.67x.
+# for stage 2. Speed tests (docs/SPEED_TUNING.md): stage-1 BFGS (fixed 0.25 A trust radius) accepted uphill steps and
+# swung by ~10 eV on GA offspring; LBFGS converged in 17-24 evaluations and cut the 3-stage cost to 0.67x.
 @SET PROJ stage1
 @SET CHG 0
 @SET MULT 1

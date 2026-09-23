@@ -13,4 +13,5 @@ null
 *.vasp
 dev*.md
 *.xlsx
-.DS_Store
+.DS_Storeexamples/gcga_cp2k/per-job/env.sh
+tools/speedtest/cluster.json

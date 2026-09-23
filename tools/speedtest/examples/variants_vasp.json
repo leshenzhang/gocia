@@ -1,0 +1,10 @@
+{
+  "base": {},
+  "ncore4": {"edits": [["NCORE = 8", "NCORE = 4"]]},
+  "ncore16": {"edits": [["NCORE = 8", "NCORE = 16"]]},
+  "nsim4": {"edits": [["NSIM = 16", "NSIM = 4"]]},
+  "ediff1e5": {"edits": [["EDIFF = 1e-4", "EDIFF = 1e-5"]]},
+  "algo_normal": {"edits": [["ALGO = F", "ALGO = N"]]},
+  "omp2": {"ranks": 8, "omp": 2, "edits": [["NCORE = 8\n", ""]]},
+  "mkl_amd_shim": {"env": "LD_PRELOAD=/REPLACE/libmkl_amd_shim.so MKL_ENABLE_INSTRUCTIONS=AVX512"}
+}

@@ -79,6 +79,13 @@ git pull
 Otherwise, you need to manually remove the old `gocia` directory, and then download and unzip again.
 
 
+## CP2K interface and speed tuning (branch `cp2k-interface`)
+
+- `examples/gcga_cp2k/`: GCGA with CP2K (3-stage templates, bundled and one-job-per-worker launchers).
+- `examples/gcga_vasp_tuned/`: tuned VASP stage INCARs.
+- `docs/SPEED_TUNING.md` (Chinese: `docs/SPEED_TUNING.zh.md`): how to measure and tune VASP / CP2K relaxation speed on a
+  new cluster, with the tools in `tools/speedtest/` and a worked reference result.
+
 ## Tutorial
 
 We assume the use of VASP for local optimization unless otherwise specified.

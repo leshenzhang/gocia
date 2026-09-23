@@ -32,8 +32,8 @@ nsides = 2               # 2 = z-symmetrised slab (both faces charged), route B/
 
 # launcher + binary. Shaheen wangc0i pack-4 rule (192 cores/node, 4 x 48): 24 MPI x 2 OMP each
 cp2k_cmd = 'srun --exact --mem=90000 --hint=nomultithread -n 24 -c 2 /scratch/wangc0i/zls/soft/cp2k-2026.2/install/bin/cp2k.psmp'
-# Ibex (Turin cpu_amd_epyc_9655, one 16-core job per worker, ibex/run-worker.sbatch sources ibex/env.sh):
-# cp2k_cmd = 'mpirun -np 16 /ibex/user/reny0b/zls/soft/cp2k-2026.2-lpb/install_z4/bin/cp2k.psmp'
+# one scheduler job per worker (per-job/run-worker.sbatch sources per-job/env.sh), 16 cores each:
+# cp2k_cmd = 'mpirun -np 16 <CP2K_ROOT>/bin/cp2k.psmp'
 
 # &KIND blocks are generated per element from gocia.utils.cp2k.KIND_Q (MOLOPT-SR-GTH-qN / GTH-PBE-qN),
 # matching the group's reference input (Mo q14, S q6, O q6, H q1, Pt q18, Cu q11 ...).

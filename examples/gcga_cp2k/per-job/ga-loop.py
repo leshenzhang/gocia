@@ -1,8 +1,8 @@
-# Ibex GCGA worker loop: ONE sbatch job = ONE worker (16 cores on a shared Turin node, never a whole node).
-# Submit N copies of ibex/run-worker.sbatch for N concurrent workers (e.g. popSize per mu search, <= 1300 cores/account).
+# GCGA worker loop for clusters where each worker is its own scheduler job (e.g. 16 cores on a shared node).
+# Submit N copies of per-job/run-worker.sbatch for N concurrent workers (e.g. popSize per mu search, within your core cap).
 # Kid numbering is race-free across jobs: a directory is claimed by os.mkdir, which fails if another job got it first.
-#   python -u ibex/ga-loop.py <totConf> <minConf>        (from ibex/run-worker.sbatch; touch STOP to end)
-# Run ibex/ga-prep.py ONCE before the first worker (initializes gmid / natural selection).
+#   python -u per-job/ga-loop.py <totConf> <minConf>        (from per-job/run-worker.sbatch; touch STOP to end)
+# Run per-job/ga-prep.py ONCE before the first worker (initializes gmid / natural selection).
 import datetime
 import os
 import subprocess

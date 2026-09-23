@@ -1,0 +1,10 @@
+{
+  "base": {},
+  "eps1e5": {"edits": [["EPS_SCF 1.0E-4", "EPS_SCF 1.0E-5"]]},
+  "eps1e3": {"edits": [["EPS_SCF 1.0E-4", "EPS_SCF 1.0E-3"]]},
+  "no_kerker": {"edits": [["        BETA 1.5\n", ""]]},
+  "beta25": {"edits": [["        BETA 1.5\n", "        BETA 2.5\n"]]},
+  "scalapack": {"edits": [["PREFERRED_DIAG_LIBRARY ELPA", "PREFERRED_DIAG_LIBRARY SL"]]},
+  "omp2": {"ranks": 8, "omp": 2},
+  "mkl_amd_shim": {"env": "LD_PRELOAD=/REPLACE/libmkl_amd_shim.so MKL_ENABLE_INSTRUCTIONS=AVX512"}
+}

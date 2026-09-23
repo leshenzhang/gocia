@@ -1,4 +1,4 @@
-# Run once (login node is fine, database only) before submitting Ibex workers: same start-up as ga-bundle.py.
+# Run once (login node is fine, database only) before submitting per-job workers: same start-up as ga-bundle.py.
 import os
 import input
 from gocia.ga.popGrandCanon import PopulationGrandCanonical

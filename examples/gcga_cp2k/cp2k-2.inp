@@ -1,4 +1,4 @@
-# Stage 2/3: force < 0.2 eV/A, 350/50 Ry, EPS_SCF 1e-4 (D-005/D-009: 0.09 meV, 3e-4 A vs 1e-5), Kerker BETA 1.5;
+# Stage 2/3: force < 0.2 eV/A, 350/50 Ry, EPS_SCF 1e-4 (docs/SPEED_TUNING.md: 0.09 meV, 3e-4 A vs 1e-5), Kerker BETA 1.5;
 # restarts from stage1-RESTART.wfn (atomic guess automatically if atoms were removed), writes stage2-RESTART.wfn
 @SET PROJ stage2
 @SET CHG 0
