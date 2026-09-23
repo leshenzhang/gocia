@@ -1,10 +1,15 @@
 @SET PROJ stage1
 @SET CHG 0
 @SET MULT 1
+@SET SCFMODE DIAG
+@SET ADDMOS 81
 # Stage 1 / 3 : cheap rationalisation (loose SCF and forces, few steps)
-# Reference style: PBE-D3(BJ), MOLOPT-SR-GTH, OT + OUTER_SCF, UKS with MULTIPLICITY set per structure
-# (gocia.utils.cp2k writes @SET MULT from the valence-electron parity). Metals: replace &OT by
-# &DIAGONALIZATION + &SMEAR FERMI_DIRAC + ADDED_MOS and drop UKS/MULTIPLICITY (see cp2k-gce.inp).
+# Reference style: PBE-D3(BJ), MOLOPT-SR-GTH. SCF block chosen by @SET SCFMODE (input.py scf_mode):
+#   DIAG = diagonalization + Fermi-Dirac 300 K + ADDED_MOS (Multiwfn smearing reference) -> metals (default)
+#   OT   = orbital transformation + OUTER_SCF (the group's MoS2/water reference) -> gapped systems only.
+#   Ibex test 2026-09-22 on the Cu144 slab: OT 'converged' to minimizer-dependent states 0.20-0.62 eV above
+#   the smeared result and 2-3x slower, so never use OT for metals.
+# UKS + MULTIPLICITY 2 and 'ADDED_MOS n n' are switched in for odd electron counts (@SET MULT, as Multiwfn does).
 &GLOBAL
   PROJECT ${PROJ}
   PRINT_LEVEL LOW
@@ -39,8 +44,10 @@
     BASIS_SET_FILE_NAME BASIS_MOLOPT
     POTENTIAL_FILE_NAME POTENTIAL
     CHARGE ${CHG}
+@IF ${MULT} == 2
     UKS
-    MULTIPLICITY ${MULT}
+    MULTIPLICITY 2
+@ENDIF
     &QS
       EPS_DEFAULT 1.0E-10
       EXTRAPOLATION ASPC
@@ -66,6 +73,7 @@
       CUTOFF 400
       REL_CUTOFF 40
     &END MGRID
+@IF ${SCFMODE} == OT
     &SCF
       MAX_SCF 25
       EPS_SCF 1.0E-4
@@ -85,6 +93,31 @@
         &END RESTART
       &END PRINT
     &END SCF
+@ENDIF
+@IF ${SCFMODE} == DIAG
+    &SCF
+      MAX_SCF 128
+      EPS_SCF 1.0E-4
+      SCF_GUESS atomic
+      ADDED_MOS ${ADDMOS}
+      &DIAGONALIZATION
+        ALGORITHM STANDARD
+      &END DIAGONALIZATION
+      &MIXING
+        METHOD BROYDEN_MIXING
+        ALPHA 0.4
+        NBROYDEN 8
+      &END MIXING
+      &SMEAR
+        METHOD FERMI_DIRAC
+        ELECTRONIC_TEMPERATURE [K] 300
+      &END SMEAR
+      &PRINT
+        &RESTART OFF
+        &END RESTART
+      &END PRINT
+    &END SCF
+@ENDIF
   &END DFT
   &SUBSYS
     &CELL

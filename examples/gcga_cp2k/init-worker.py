@@ -11,7 +11,7 @@ from gocia.utils import cp2k
 from gocia.interface import Interface
 
 atoms = cp2k.do_multiStep_opt(step=3, cp2k_cmd=input.cp2k_cmd, template='../cp2k-%i.inp',
-                              zLim=input.zLim, substrate='../substrate.vasp')
+                              zLim=input.zLim, substrate='../substrate.vasp', sets={'SCFMODE': input.scf_mode})
 if atoms is None:
     sys.exit('CP2K failed (FAIL touched)')
 

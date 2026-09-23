@@ -107,7 +107,8 @@ def default_sets(atoms, charge=0):
     """@SET values written per structure: MULT (UKS parity), NVAL, ADDMOS ('n' or 'n n' for UKS as Multiwfn writes it)."""
     m = multiplicity(atoms, charge)
     n = added_mos(atoms)
-    return {'MULT': m, 'NVAL': valence_electrons(atoms), 'ADDMOS': f'{n} {n}' if m == 2 else f'{n}'}
+    return {'MULT': m, 'NVAL': valence_electrons(atoms), 'ADDMOS': f'{n} {n}' if m == 2 else f'{n}',
+            'SCFMODE': 'DIAG'}   # DIAG (metals, default) | OT (gapped systems); override via sets={'SCFMODE': 'OT'}
 
 
 def write_includes(atoms, dirname='.', kind_overrides=None):
