@@ -46,7 +46,7 @@ elif input.route == 'B':
     if atoms is None:
         sys.exit('CP2K failed (FAIL touched)')
     cp2k.write_includes(atoms)
-    cp2k.make_input('../cp2k-gce.inp', 'gce.inp', 'gce',
+    cp2k.make_input(getattr(input, 'gce_template', '../electrolyte/cp2k-gce.inp'), 'gce.inp', 'gce',
                     sets=dict(cp2k.default_sets(atoms, 0), USHE=input.u_she, PHISHE=input.phi_she))
     cp2k.run_cp2k(input.cp2k_cmd, 'gce.inp', 'gce.out')
     final = cp2k.read_final_geometry('gce', atoms)

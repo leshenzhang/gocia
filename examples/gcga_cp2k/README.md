@@ -1,8 +1,9 @@
 # GOCIA x CP2K (branch `cp2k-interface`)
 
 GOCIA core untouched. `gocia/utils/cp2k.py` mirrors `gocia/utils/vasp.py`; every energy enters the
-population through the existing `pop.add_aseResult(atoms, workdir)`. Constant potential uses the
-implicit electrolyte build https://github.com/leshenzhang/cp2k-implicit-electrolyte.
+population through the existing `pop.add_aseResult(atoms, workdir)`. Route A needs only stock CP2K.
+The constant-potential layer (`electrolyte/`) is optional and needs the separate implicit-electrolyte
+build https://github.com/leshenzhang/cp2k-implicit-electrolyte — the model is not part of this repo.
 
 ## Files
 
@@ -15,10 +16,10 @@ implicit electrolyte build https://github.com/leshenzhang/cp2k-implicit-electrol
 | `dedup_db.py` | mark duplicate initial structures `alive=0` | init/collectVASP.py |
 | `ga-worker.py` | offspring -> Hookean preopt -> CP2K (route A or B) -> db | ga-worker.py |
 | `ga-bundle.py` + `run-bundle.sbatch` | ONE sbatch job, N nodes, 4 workers/node, `touch STOP` to end | ga-slurm.py + slurm-vasp.sh |
-| `sc-worker.py` | route C charge scan: `--prepare` / packed run / `--collect` -> `sc.dat`, `parabola.dat` | do_surfChrg_batch + get_parabola |
+| `electrolyte/sc-worker.py` | route C charge scan: `--prepare` / packed run / `--collect` -> `sc.dat`, `parabola.dat` (separate electrolyte build) | do_surfChrg_batch + get_parabola |
 | `cp2k-1/2/3.inp` | 3-stage GEO_OPT, group reference style (PBE-D3(BJ), MOLOPT-SR, OT + OUTER_SCF, UKS) | INCAR-1/2/3 |
-| `cp2k-gce.inp` | route B: GEO_OPT at constant potential (`&SCCS DEBYE_LENGTH` + `&SCF&GCE`) | — |
-| `cp2k-sc.inp` | route C: fixed-charge single point with electrolyte (5-point parabola) | INCAR-sc |
+| `electrolyte/cp2k-gce.inp` | route B: GEO_OPT at constant potential (`&SCCS DEBYE_LENGTH` + `&SCF&GCE`), separate electrolyte build | — |
+| `electrolyte/cp2k-sc.inp` | route C: fixed-charge single point with electrolyte (5-point parabola), separate electrolyte build | INCAR-sc |
 
 Template contract (all written from the ASE Atoms by `write_includes`): `@INCLUDE cell.inc`,
 `coord.inc`, `constraint.inc` (FixAtoms -> `&FIXED_ATOMS LIST 1..8`), `kind.inc` (one `&KIND` per
@@ -52,8 +53,8 @@ python dedup_db.py gcga.db
 # 2. GCGA (job-name 01__gocia_cp2k, nworker = 4 x nodes, <=10 concurrent 01__ jobs)
 sbatch run-bundle.sbatch
 # 3. a posteriori constant potential on the ensemble (route C), inside a kid directory
-python ../sc-worker.py --prepare -2 -1 0 1 2   # then run q_*/sc.inp packed, then
-python ../sc-worker.py --collect -2 -1 0 1 2
+python ../electrolyte/sc-worker.py --prepare -2 -1 0 1 2   # then run q_*/sc.inp packed, then
+python ../electrolyte/sc-worker.py --collect -2 -1 0 1 2
 ```
 
 Offline tests: `python tests/test_cp2k_interface.py` (7 tests, synthetic CP2K output).

@@ -1,5 +1,6 @@
 # Route C: a posteriori constant-potential energetics for ONE relaxed structure (thesis eq 5.5).
-# Run inside a directory holding POSCAR (relaxed, z-symmetrised slab) and ../cp2k-sc.inp.
+# Needs the separate implicit-electrolyte CP2K build (https://github.com/leshenzhang/cp2k-implicit-electrolyte).
+# Run inside a kid directory holding POSCAR (relaxed, z-symmetrised slab); template = input.sc_template.
 #   python sc-worker.py -2 -1 0 1 2               serial: prepare, run, collect, fit
 #   python sc-worker.py --prepare -2 -1 0 1 2     only write q_*/sc.inp (then run them packed)
 #   python sc-worker.py --collect -2 -1 0 1 2     parse q_*/sc.out -> sc.dat -> parabola.dat
@@ -14,7 +15,7 @@ flags = {a for a in sys.argv[1:] if a.startswith('--')}
 args = [a for a in sys.argv[1:] if not a.startswith('--')]
 frac = '--frac' in flags
 charges = [float(a) if frac else int(a) for a in args] or [-2, -1, 0, 1, 2]
-template = getattr(input, 'sc_template', '../cp2k-sc.inp')
+template = getattr(input, 'sc_template', '../electrolyte/cp2k-sc.inp')
 
 if '--prepare' in flags:
     print('prepared:', cp2k.prepare_surfChrg(charges, template=template, fractional=frac))
