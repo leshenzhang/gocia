@@ -11,8 +11,12 @@ def dist2lin(p1, p2, p3):
     '''
     p1 and p2 defines the line
     returns the distance with signs (+/-)
+    2D z-component of the cross product written out: np.cross on 2-vectors was deprecated in
+    NumPy 2.0 and now raises ValueError, which broke every GCGA crossover.
     '''
-    return np.cross(p2-p1, p1-p3)/np.linalg.norm(p2-p1)
+    a = np.asarray(p2) - np.asarray(p1)
+    b = np.asarray(p1) - np.asarray(p3)
+    return (a[0]*b[1] - a[1]*b[0])/np.linalg.norm(a[:2])
 
 def split_2d(atoms1, atoms2):
     '''
