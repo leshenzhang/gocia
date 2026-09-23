@@ -3,7 +3,8 @@
 @SET NEX 0.0
 @SET LPB 3.04
 @SET NC 0.0025
-@SET ADDMOS 80
+@SET ADDMOS 81
+@SET MULT 1
 # Route C: single point at fixed charge with the implicit electrolyte, one run per charge (5-point parabola).
 # CHG = integer &DFT CHARGE. Fractional excess electrons: set NEX and uncomment the &GCE block
 # (NELECTRON_EXCESS with MAX_OUTER_UPDATES 0 = constant-charge run).
@@ -20,6 +21,10 @@
     BASIS_SET_FILE_NAME BASIS_MOLOPT
     POTENTIAL_FILE_NAME POTENTIAL
     CHARGE ${CHG}
+@IF ${MULT} == 2
+    UKS
+    MULTIPLICITY 2
+@ENDIF
     &QS
       EPS_DEFAULT 1.0E-10
       EXTRAPOLATION ASPC
@@ -80,7 +85,7 @@
       &END SMEAR
       &MIXING
         METHOD BROYDEN_MIXING
-        ALPHA 0.2
+        ALPHA 0.4
         NBROYDEN 8
       &END MIXING
 #      &GCE on

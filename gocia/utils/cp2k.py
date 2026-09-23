@@ -20,7 +20,8 @@ Template convention (see examples/gcga_cp2k/cp2k-*.inp):
   @INCLUDE coord.inc    inside &SUBSYS&COORD
   @INCLUDE constraint.inc inside &MOTION&CONSTRAINT   (FixAtoms -> &FIXED_ATOMS)
   @INCLUDE kind.inc     inside &SUBSYS               (&KIND per element, MOLOPT-SR-qN / GTH-PBE-qN)
-  @SET MULT / @SET NVAL  written per structure (UKS parity from the valence count and CHARGE)
+  @SET MULT / @SET NVAL / @SET ADDMOS written per structure (UKS parity from the valence count and
+  CHARGE; ADDED_MOS = max(30, ceil(N/2)) as Multiwfn does; smearing templates use @IF ${MULT} == 2 for UKS)
 Any other '@SET KEY value' line can be overridden through make_input(sets={...}).
 """
 import os
@@ -97,8 +98,16 @@ def multiplicity(atoms, charge=0, overrides_q=None):
     return 1 if ne % 2 == 0 else 2
 
 
+def added_mos(atoms):
+    """Multiwfn 3.8 rule for smeared metals (checked on 5 systems, 27-347 atoms): max(30, ceil(N_atoms/2))."""
+    return max(30, (len(atoms) + 1) // 2)
+
+
 def default_sets(atoms, charge=0):
-    return {'MULT': multiplicity(atoms, charge), 'NVAL': valence_electrons(atoms)}
+    """@SET values written per structure: MULT (UKS parity), NVAL, ADDMOS ('n' or 'n n' for UKS as Multiwfn writes it)."""
+    m = multiplicity(atoms, charge)
+    n = added_mos(atoms)
+    return {'MULT': m, 'NVAL': valence_electrons(atoms), 'ADDMOS': f'{n} {n}' if m == 2 else f'{n}'}
 
 
 def write_includes(atoms, dirname='.', kind_overrides=None):

@@ -52,6 +52,8 @@ def test_includes_and_input(tmp):
     ref = Atoms('Mo24S46O92H185')                       # the group's reference input: UKS MULTIPLICITY 2
     assert cp2k.valence_electrons(ref) == 1349 and cp2k.multiplicity(ref) == 2
     assert cp2k.kind_block(['Mo', 'S']).count('&KIND') == 2
+    assert cp2k.added_mos(a) == 30 and cp2k.added_mos(ref) == 174 and cp2k.default_sets(ref)['ADDMOS'] == '174 174'
+    assert cp2k.default_sets(a)['ADDMOS'] == '30'
     tpl = os.path.join(tmp, 'tpl.inp')
     open(tpl, 'w').write('@SET PROJ x\n@SET CHG 0\n&GLOBAL\n PROJECT ${PROJ}\n&END GLOBAL\n')
     out = os.path.join(tmp, 'run.inp')

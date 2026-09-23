@@ -25,7 +25,9 @@ Template contract (all written from the ASE Atoms by `write_includes`): `@INCLUD
 `coord.inc`, `constraint.inc` (FixAtoms -> `&FIXED_ATOMS LIST 1..8`), `kind.inc` (one `&KIND` per
 element, `DZVP-MOLOPT-SR-GTH-qN` / `GTH-PBE-qN` from `KIND_Q`, override via `kind_overrides`);
 `@SET PROJ`, `@SET CHG`, `@SET MULT` (UKS parity from the valence count and the charge; GCGA adds
-and removes atoms so it flips per structure), `@SET NVAL` rewritten per run.
+and removes atoms so it flips per structure), `@SET NVAL`, `@SET ADDMOS` rewritten per run. Smearing
+settings follow the group's Multiwfn 3.8 reference: Fermi-Dirac 300 K (raise if SCF stalls), Broyden
+ALPHA 0.4 / NBROYDEN 8, ADDED_MOS = max(30, ceil(N_atoms/2)) ("n n" and UKS via `@IF ${MULT} == 2` for odd electron counts).
 
 ## Energies
 

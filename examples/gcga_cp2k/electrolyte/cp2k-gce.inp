@@ -4,7 +4,8 @@
 @SET PHISHE 4.43
 @SET LPB 3.04
 @SET NC 0.0025
-@SET ADDMOS 80
+@SET ADDMOS 81
+@SET MULT 1
 # Route B: GEO_OPT at constant electrode potential USHE (V vs SHE) with the implicit electrolyte
 # (leshenzhang/cp2k-implicit-electrolyte build: &SCCS DEBYE_LENGTH + &SCF&GCE UPDATE_SCHEME CAPACITANCE).
 # &GCE needs diagonalization + Fermi-Dirac smearing + ADDED_MOS (no OT). Slab must be z-symmetrised.
@@ -43,6 +44,10 @@
     BASIS_SET_FILE_NAME BASIS_MOLOPT
     POTENTIAL_FILE_NAME POTENTIAL
     CHARGE ${CHG}
+@IF ${MULT} == 2
+    UKS
+    MULTIPLICITY 2
+@ENDIF
     &QS
       EPS_DEFAULT 1.0E-10
       EXTRAPOLATION ASPC
@@ -103,7 +108,7 @@
       &END SMEAR
       &MIXING
         METHOD BROYDEN_MIXING
-        ALPHA 0.2
+        ALPHA 0.4
         NBROYDEN 8
       &END MIXING
       &GCE on
