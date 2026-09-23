@@ -1,9 +1,12 @@
-# Stage 2/3: force < 0.2 eV/A, 350/50 Ry, EPS_SCF 5e-6; writes stage2-RESTART.wfn for stage 3
+# Stage 2/3: force < 0.2 eV/A, 350/50 Ry, EPS_SCF 1e-4 (D-005/D-009: 0.09 meV, 3e-4 A vs 1e-5), Kerker BETA 1.5;
+# restarts from stage1-RESTART.wfn (atomic guess automatically if atoms were removed), writes stage2-RESTART.wfn
 @SET PROJ stage2
 @SET CHG 0
 @SET MULT 1
 @SET ADDMOS 81
 &GLOBAL
+  PREFERRED_DIAG_LIBRARY ELPA
+  ELPA_KERNEL AUTO
   PROJECT ${PROJ}
   RUN_TYPE GEO_OPT
   PRINT_LEVEL LOW
@@ -40,6 +43,7 @@
   &DFT
     BASIS_SET_FILE_NAME BASIS_MOLOPT
     POTENTIAL_FILE_NAME POTENTIAL
+    WFN_RESTART_FILE_NAME stage1-RESTART.wfn
     CHARGE ${CHG}
 @IF ${MULT} == 2
     UKS
@@ -58,7 +62,8 @@
     &END XC
     &SCF
       MAX_SCF 128
-      EPS_SCF 5.0E-6
+      EPS_SCF 1.0E-4
+      SCF_GUESS RESTART
       ADDED_MOS ${ADDMOS}
       &DIAGONALIZATION
       &END DIAGONALIZATION
@@ -66,6 +71,7 @@
         METHOD BROYDEN_MIXING
         ALPHA 0.4
         NBROYDEN 8
+        BETA 1.5
       &END MIXING
       &SMEAR
         METHOD FERMI_DIRAC

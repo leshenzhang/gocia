@@ -1,9 +1,11 @@
-# Stage 3/3: force < 0.1 eV/A, 350/50 Ry, EPS_SCF 5e-6; restarts from stage2-RESTART.wfn
+# Stage 3/3: force < 0.1 eV/A, 350/50 Ry, EPS_SCF 1e-4, Kerker BETA 1.5; restarts from stage2-RESTART.wfn
 @SET PROJ stage3
 @SET CHG 0
 @SET MULT 1
 @SET ADDMOS 81
 &GLOBAL
+  PREFERRED_DIAG_LIBRARY ELPA
+  ELPA_KERNEL AUTO
   PROJECT ${PROJ}
   RUN_TYPE GEO_OPT
   PRINT_LEVEL LOW
@@ -59,7 +61,7 @@
     &END XC
     &SCF
       MAX_SCF 128
-      EPS_SCF 5.0E-6
+      EPS_SCF 1.0E-4
       SCF_GUESS RESTART
       ADDED_MOS ${ADDMOS}
       &DIAGONALIZATION
@@ -68,6 +70,7 @@
         METHOD BROYDEN_MIXING
         ALPHA 0.4
         NBROYDEN 8
+        BETA 1.5
       &END MIXING
       &SMEAR
         METHOD FERMI_DIRAC

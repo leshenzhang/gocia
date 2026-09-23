@@ -16,8 +16,9 @@ build https://github.com/leshenzhang/cp2k-implicit-electrolyte — the model is 
 | `dedup_db.py` | mark duplicate initial structures `alive=0` | init/collectVASP.py |
 | `ga-worker.py` | offspring -> Hookean preopt -> CP2K (route A or B) -> db | ga-worker.py |
 | `ga-bundle.py` + `run-bundle.sbatch` | ONE sbatch job, N nodes, 4 workers/node, `touch STOP` to end | ga-slurm.py + slurm-vasp.sh |
+| `ibex/` | Ibex: `run-worker.sbatch` (one 16-core job = one worker, submit N) + `ga-loop.py` (race-free kid numbering) + `ga-prep.py` (run once) + `run-init-one.sbatch` + `env.sh` (install_z4, ELPA, MKL AVX-512 path) | ga-slurm.py |
 | `electrolyte/sc-worker.py` | route C charge scan: `--prepare` / packed run / `--collect` -> `sc.dat`, `parabola.dat` (separate electrolyte build) | do_surfChrg_batch + get_parabola |
-| `cp2k-1/2/3.inp` | 3-stage GEO_OPT, lean: diagonalisation + Fermi-Dirac 300 K (Multiwfn), BFGS, force criteria 0.5/0.2/0.1 eV/A (= EDIFFG), stage 3 restarts from the stage-2 wavefunction; only the final structure (FINAL xyz) is written | INCAR-1/2/3 |
+| `cp2k-1/2/3.inp` | 3-stage GEO_OPT, lean: diagonalisation + Fermi-Dirac 300 K (Multiwfn) + Kerker BETA 1.5; stage 1 LBFGS, 250/40 Ry, EPS_SCF 1e-3; stages 2-3 BFGS, 350/50 Ry, EPS_SCF 1e-4; force criteria 0.5/0.2/0.1 eV/A (= EDIFFG); wavefunction chained 1 -> 2 -> 3 (atomic guess if atoms were removed); `PREFERRED_DIAG_LIBRARY ELPA` (ScaLAPACK where ELPA is absent); only the final structure (FINAL xyz) is written | INCAR-1/2/3 |
 | `electrolyte/cp2k-gce.inp` | route B: GEO_OPT at constant potential (`&SCCS DEBYE_LENGTH` + `&SCF&GCE`), separate electrolyte build | — |
 | `electrolyte/cp2k-sc.inp` | route C: fixed-charge single point with electrolyte (5-point parabola), separate electrolyte build | INCAR-sc |
 
@@ -60,3 +61,21 @@ python ../electrolyte/sc-worker.py --collect -2 -1 0 1 2
 ```
 
 Offline tests: `python tests/test_cp2k_interface.py` (7 tests, synthetic CP2K output).
+
+## Run (Ibex, Turin nodes, never a whole node)
+
+Measured on four GOCIA offspring of Cu(100) 6x6x4 + 4 CO + 10 H (162 atoms, vacuum), 16 cores per structure
+(ai-reconstr-pre D-004..D-015): 24 min per 3-stage relaxation with these templates on `install_z4`, against 96 min
+with the previous settings; about 200 relaxed structures/h per 1300-core account (81 workers).
+
+```bash
+# prerequisites: python with ase + natsort on the compute nodes (GOCIA_PY / GOCIA_PYLIB in ibex/env.sh), this repo
+# at GOCIA_REPO, input.py cp2k_cmd = the Ibex line
+python boxSample.py substrate.vasp 40 && python db2dirs.py init.db
+for d in s0*/; do sbatch --chdir=$d ibex/run-init-one.sbatch; done
+python dedup_db.py gcga.db && python ibex/ga-prep.py
+for i in $(seq 25); do TOTCONF=2000 MINCONF=200 sbatch ibex/run-worker.sbatch; done     # 25 workers; touch STOP to end
+```
+
+Keep `EXTENDED_FFT_LENGTHS` off: at 350 Ry it moves relative energies by 30-60 meV (3-5 meV without, D-012).
+
